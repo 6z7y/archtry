@@ -1,5 +1,6 @@
 use std::fmt;
 
+/// Represents user choices for GPU and device type
 #[derive(Debug)]
 pub struct UserChoices {
     pub gpu_type: GpuType,
@@ -7,11 +8,13 @@ pub struct UserChoices {
 }
 
 impl UserChoices {
+    /// Creates new UserChoices instance
     pub fn new(gpu_type: GpuType, device_type: DeviceType) -> Self {
         UserChoices { gpu_type, device_type }
     }
 }
 
+/// Supported GPU types
 #[derive(Debug)]
 pub enum GpuType {
     Amd,
@@ -29,6 +32,7 @@ impl fmt::Display for GpuType {
     }
 }
 
+/// Supported device types
 #[derive(Debug)]
 pub enum DeviceType {
     Laptop,

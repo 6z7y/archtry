@@ -51,5 +51,3 @@ archtry
 ---
 
 **Get started** with ArchTry today and explore Arch Linux installation in a **safe** and **educational** way! 🚀
-
-> **Note:** This tool does not provide a complete Arch Linux installation **yet**.

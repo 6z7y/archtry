@@ -1,119 +1,132 @@
 use colored::Colorize;
-use std::io::{self, Write};
+use dialoguer::{Select, Input};
 use crate::models::{DeviceType, GpuType, UserChoices};
-use crate::utils::{sleep, get_user_input, create_progress_bar, show_header, show_success, show_warning, get_user_input_with_prompt};
+use crate::utils::{sleep, create_progress_bar, show_header, show_success, show_warning};
+use crate::input_handler::read_input_with_history;
+use std::io::Write;
 
-/// Run the full Arch Linux installation simulation
+/// Runs full Arch Linux installation simulation
 pub fn run_simulation(user_choices: &UserChoices) {
     show_header("Starting Arch Linux Installation Simulator...");
     sleep(3);
     show_header("Welcome to Arch Linux!");
     sleep(2);
 
-    println!("\n{}", "Setting up system based on your choices:".bright_blue());
-    println!("- Disk Size: 50GB (Fixed)");
-    println!("- GPU Type: {}", user_choices.gpu_type);
-    println!("- Device Type: {}", user_choices.device_type);
-    sleep(1);
-
-    // Check if the device is a PC and show LAN connection message
+    // Network setup
     if let DeviceType::Pc = user_choices.device_type {
         println!("\n{}", "Connected via LAN.".bright_green());
         sleep(1);
-    }
-
-    if let DeviceType::Laptop = user_choices.device_type {
+    } else if let DeviceType::Laptop = user_choices.device_type {
         simulate_wifi_setup();
     }
 
+    // Disk preparation
     simulate_partitioning();
     simulate_mount();
+
+    // Base system installation
     simulate_pacstrap(&user_choices.gpu_type);
+
+    // Final configuration
     simulate_final_steps();
 }
 
-/// Simulate Wi-Fi setup for laptops
+/// Simulates Wi-Fi setup for laptops
 fn simulate_wifi_setup() {
-    show_header("Setting up Wi-Fi for laptop...");
+    show_header("Setting up Wi-Fi...");
     show_warning("Note: You need to manually connect to Wi-Fi.");
 
     simulate_command("ip a", "Show network interfaces", false, || {
-        println!(
-            r#"
-1: wlan0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default qlen 1000
-    link/ether XX:XX:XX:XX:XX:XX brd ff:ff:ff:ff:ff:ff
-"#
-        );
+        println!("1: wlan0: <NO-CARRIER,BROADCAST,MULTICAST,UP>");
     });
 
-    simulate_command("iwctl station wlan0 get-networks", "Scan for Wi-Fi networks", false, || {
-        println!(
-            r#"
-                               Available networks
---------------------------------------------------------------------------------
-      Network name                  Security            Signal
---------------------------------------------------------------------------------
-      archtry_wifi                    NULL               ****
-"#
-        );
+    simulate_command("iwctl station wlan0 get-networks", "Scan for Wi-Fi", false, || {
+        println!("Available networks: archtry_wifi");
     });
 
     simulate_command("iwctl station wlan0 connect archtry_wifi", "Connect to Wi-Fi", false, || {
-        println!("\nConnected to archtry_wifi.\n");
+        println!("Connected to archtry_wifi.");
     });
 
     sleep(1);
 }
 
-/// Simulate disk partitioning
+/// Simulates disk partitioning with educational guidance
 fn simulate_partitioning() {
     show_header("Partitioning disk...");
     show_warning("Note: You need to manually partition the disk.");
 
     simulate_command("lsblk", "Show disk layout", false, || {
-        println!(
-            r#"
-NAME        MAJ:MIN RM   SIZE RO TYPE MOUNTPOINTS
-sdz         259:0   0   50.0G  0 disk
-"#
-        );
+        println!("NAME        SIZE\nsdz         50.0G");
     });
 
+    // محاكاة موسعة لأمر fdisk مع تعليمات مفصلة
     simulate_command("fdisk /dev/sdz", "Create partitions", false, || {
-        println!("\nCreating partitions...\n");
+        println!("\n{}", "Starting fdisk simulation...".bright_blue());
+        sleep(1);
+        
+        // Step 1: Create GPT partition table
+        println!("\n{}", "Step 1: Create a new GPT partition table".bright_yellow());
+        println!("Command: {}", "g".bright_green());
+        println!("Created a new GPT disklabel (GUID: 12345678-1234-1234-1234-1234567890AB).");
+        sleep(1);
+        
+        // Step 2: Create EFI System partition (1GB)
+        println!("\n{}", "Step 2: Create EFI System partition (1GB)".bright_yellow());
+        println!("Command: {}", "n".bright_green());
+        println!("Partition number (1-128, default 1): ");
+        println!("First sector (2048-104857566, default 2048): ");
+        println!("Last sector, +/-sectors or +/-size{{K,M,G,T,P}} (2048-104857566, default 104857566): {}", "+1G".bright_green());
+        println!("Created a new partition 1 of type 'Linux filesystem' and of size 1 GiB.");
+        sleep(1);
+        
+        // Step 3: Change partition type to EFI System
+        println!("\n{}", "Step 3: Change partition type to EFI System".bright_yellow());
+        println!("Command: {}", "t".bright_green());
+        println!("Partition number (1,2, default 2): {}", "1".bright_green());
+        println!("Partition type or alias (type L to list all): {}", "1".bright_green());
+        println!("Changed type of partition 'Linux filesystem' to 'EFI System'.");
+        sleep(1);
+        
+        // Step 4: Create root partition (using remaining space)
+        println!("\n{}", "Step 4: Create root partition (using remaining space)".bright_yellow());
+        println!("Command: {}", "n".bright_green());
+        println!("Partition number (2-128, default 2): ");
+        println!("First sector (1128448-104857566, default 1128448): ");
+        println!("Last sector, +/-sectors or +/-size{{K,M,G,T,P}} (1128448-104857566, default 104857566): ");
+        println!("Created a new partition 2 of type 'Linux filesystem' and of size 49 GiB.");
+        sleep(1);
+        
+        // Step 5: Write changes to disk
+        println!("\n{}", "Step 5: Write changes to disk".bright_yellow());
+        println!("Command: {}", "w".bright_green());
+        println!("The partition table has been altered.");
+        println!("Calling ioctl() to re-read partition table.");
+        println!("Syncing disks.");
+        
+        sleep(1);
+        println!("\n{}", "Partitioning completed successfully.".bright_green());
     });
-
-    simulate_command("mkfs.fat -F 32 /dev/sdz1", "Format EFI partition", false, || {
-        println!("\nFormatting EFI partition...\n");
-    });
-
-    simulate_command("mkfs.ext4 /dev/sdz2", "Format root partition", false, || {
-        println!("\nFormatting root partition...\n");
-    });
-
-    show_success("Disk partitioned and formatted.");
 }
 
-/// Simulate mounting partitions
+/// Simulates mounting partitions
 fn simulate_mount() {
     show_header("Mounting partitions...");
-    show_warning("Note: You need to manually mount the partitions.");
 
     simulate_command("mount /dev/sdz2 /mnt", "Mount root partition", false, || {
-        println!("\nRoot partition mounted.\n");
+        println!("Root partition mounted.");
     });
 
     simulate_command("mount --mkdir /dev/sdz1 /mnt/boot/efi", "Mount EFI partition", false, || {
-        println!("\nEFI partition mounted.\n");
+        println!("EFI partition mounted.");
     });
 
     show_success("Partitions mounted.");
 }
 
-/// Simulate base system installation
+/// Simulates base system installation
 fn simulate_pacstrap(gpu_type: &GpuType) {
     show_header("Installing base system...");
-    show_warning("Note: You need to manually install the base system.");
 
     let base_packages = match gpu_type {
         GpuType::Amd => "amd-ucode",
@@ -122,193 +135,271 @@ fn simulate_pacstrap(gpu_type: &GpuType) {
     };
 
     simulate_command(
-        &format!("pacstrap -K /mnt base base-devel linux linux-firmware {} grub", base_packages),
+        &format!("pacstrap -K /mnt base base-devel linux linux-firmware {} grub efibootmgr", base_packages),
         "Install base system and GRUB",
         false,
         || {
-            let total_steps = 10;
-            let pb = create_progress_bar(total_steps);
-            
-            for i in 0..total_steps {
-                pb.set_position(i as u64);
-                pb.set_message("Installing base system and GRUB...");
+            let pb = create_progress_bar(10);
+            for i in 0..10 {
+                pb.set_position(i);
+                pb.set_message("Installing packages...");
                 sleep(1);
             }
-            
-            pb.finish_with_message("Base system and GRUB installed successfully.");
-            println!();
+            pb.finish_with_message("Installation complete.");
         },
     );
 
-    show_success("Base system and GRUB installed.");
+    show_success("Base system installed.");
 }
 
-/// Simulate final installation steps
+/// Simulates final installation steps
 fn simulate_final_steps() {
     show_header("Finishing installation...");
 
+    // Generate fstab
     simulate_command("genfstab -U /mnt >> /mnt/etc/fstab", "Generate fstab", false, || {
-        println!("\nfstab generated.\n");
+        println!("fstab generated.");
     });
 
-    // Enter chroot environment
-    simulate_command("arch-chroot /mnt", "Chroot into the system", false, || {
-        println!("\nChrooted into the system.\n");
+    // Enter chroot
+    simulate_command("arch-chroot /mnt", "Enter chroot environment", false, || {
+        println!("Now in chroot environment.");
     });
 
-    // Inside chroot environment now
-    let in_chroot = true;
+    // Configure system
+    configure_hostname();
+    configure_timezone();
+    configure_locale();
+    configure_users();
+    configure_bootloader();
+    install_desktop();
+
+    // Exit and reboot
+    simulate_command("exit", "Exit chroot", true, || {
+        println!("Exited chroot.");
+    });
+
+    simulate_command("umount -R /mnt", "Unmount partitions", false, || {
+        println!("Partitions unmounted.");
+    });
+
+    simulate_command("reboot", "Reboot system", false, || {
+        println!("System rebooting...");
+    });
+
+    show_success("Installation complete!");
+    println!("{}", "You've learned the basics of Arch Linux installation.".bright_green());
+    println!("{}", "For complete guide: https://wiki.archlinux.org/title/Installation_guide".bright_blue());
+}
+
+/// Configures system hostname
+fn configure_hostname() {
+    show_header("Configuring system hostname...");
     
-    set_password("root", in_chroot);
+    let hostname = Input::new()
+        .with_prompt("Enter hostname")
+        .default("archlinux".to_string())
+        .interact()
+        .unwrap();
+    
+    simulate_command(
+        &format!("echo \"{}\" > /etc/hostname", hostname),
+        "Set hostname",
+        true,
+        || println!("Hostname set to {}", hostname.bright_green()),
+    );
+    
+    // Simplified hosts file configuration
+    simulate_command(
+        &format!("echo '127.0.1.1 {}' >> /etc/hosts", hostname),
+        "Configure hosts file (simplified)",
+        true,
+        || println!("/etc/hosts configured with hostname"),
+    );
+}
 
-    let username = get_user_input_with_prompt("\nEnter a username to create:", false);
-    simulate_command(&format!("useradd -mG wheel {}", username), "Create a new user", in_chroot, || {
-        println!("\nUser '{}' created and added to the wheel group.\n", username);
+/// Configures system timezone
+fn configure_timezone() {
+    show_header("Configuring timezone...");
+    
+    let regions = &["Africa", "America", "Asia", "Europe", "Australia"];
+    let region = regions[Select::new()
+        .with_prompt("Select continent")
+        .items(regions)
+        .default(2)
+        .interact()
+        .unwrap()];
+    
+    let cities = match region {
+        "Africa" => vec!["Cairo", "Johannesburg", "Nairobi"],
+        "America" => vec!["New_York", "Chicago", "Los_Angeles"],
+        "Asia" => vec!["Riyadh", "Dubai", "Tokyo"],
+        "Europe" => vec!["London", "Paris", "Berlin"],
+        "Australia" => vec!["Sydney", "Melbourne"],
+        _ => vec!["UTC"],
+    };
+    
+    let city = cities[Select::new()
+        .with_prompt("Select city")
+        .items(&cities)
+        .interact()
+        .unwrap()];
+    
+    let timezone = format!("{}/{}", region, city);
+    
+    simulate_command(
+        &format!("ln -sf /usr/share/zoneinfo/{} /etc/localtime", timezone),
+        "Set timezone",
+        true,
+        || println!("Timezone set to {}", timezone.bright_green()),
+    );
+
+    simulate_command("hwclock --systohc", "Sync hardware clock", true, || {
+        println!("Hardware clock synced.");
     });
-    set_password(&username, in_chroot);
+}
 
-    choose_environment(in_chroot);
+/// Configures system locale
+fn configure_locale() {
+    show_header("Configuring system locale...");
+    
+    // Use fixed English locale only
+    let locale = "en_US.UTF-8 UTF-8";
+    
+    simulate_command(
+        &format!("sed -i 's/^#{}//' /etc/locale.gen", locale),
+        "Uncomment locale",
+        true,
+        || println!("Uncommented {}", locale.bright_green()),
+    );
+    
+    simulate_command("locale-gen", "Generate locales", true, || {
+        println!("Locales generated.");
+    });
+    
+    let lang = locale.split_whitespace().next().unwrap();
+    simulate_command(
+        &format!("echo \"LANG={}\" > /etc/locale.conf", lang),
+        "Set system language",
+        true,
+        || println!("Language set to {}", lang.bright_green()),
+    );
+}
 
-    // Configure GRUB before exiting chroot
+/// Configures system users
+fn configure_users() {
+    show_header("Configuring users...");
+    
+    set_password("root");
+
+    let username: String = Input::new()
+        .with_prompt("Enter username for new user")
+        .interact()
+        .unwrap();
+    
+    simulate_command(&format!("useradd -mG wheel {}", username), "Create user", true, || {
+        println!("User {} created.", username);
+    });
+    
+    set_password(&username);
+}
+
+/// Configures bootloader
+fn configure_bootloader() {
+    show_header("Configuring bootloader...");
+    
     simulate_command(
         "grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=GRUB",
-        "Install GRUB to the EFI partition",
-        in_chroot,
-        || {
-            println!("\nGRUB installed to the EFI partition.\n");
-        },
+        "Install GRUB",
+        true,
+        || println!("GRUB installed."),
     );
 
     simulate_command(
         "grub-mkconfig -o /boot/grub/grub.cfg",
-        "Generate GRUB configuration",
-        in_chroot,
-        || {
-            println!("\nGRUB configuration generated.\n");
-        },
+        "Generate GRUB config",
+        true,
+        || println!("GRUB config generated."),
     );
-
-    simulate_command("exit", "Exit chroot environment", in_chroot, || {
-        println!("\nExited from chroot.\n");
-    });
-
-    // Back to archiso environment
-    simulate_command("umount -R /mnt", "Unmount partitions", false, || {
-        println!("\nPartitions unmounted.\n");
-    });
-
-    simulate_command("reboot", "Reboot the system", false, || {
-        println!("\nSystem rebooting...\n");
-    });
-
-    println!("\n{}", "Installation complete! You learned 40-60% of how to install Arch Linux manually!".bright_green());
-    println!("{}", "This is a fake simulation. For a complete guide, visit:".bright_blue());
-    println!("{}", "https://wiki.archlinux.org/title/Installation_guide".bright_blue());
 }
 
-/// Set a password for a user
-fn set_password(username: &str, in_chroot: bool) {
-    loop {
-        let command = if username == "root" {
-            "passwd"
-        } else {
-            &format!("passwd {}", username)
-        };
-
-        println!("{}", format!("Run '{}' to set the password for '{}':", command, username).bright_blue());
-        println!(); // Add spacing
-        println!("[hint] type: {}", command.bright_cyan());
-        
-        // Display appropriate prompt based on environment
-        if in_chroot {
-            print!("{}:{} {} ", "root".bright_red(), "/".bright_blue(), "#".bright_red());
-        } else {
-            print!("{}@{} {} {} ", "root".bright_red(), "archiso".normal(), "~".bright_green(), "#".bright_red());
-        }
-        
-        io::stdout().flush().unwrap();
-        
-        let input = get_user_input();
-
-        if input.contains(command) {
-            let password = get_user_input_with_prompt("Enter new password:", true);
-            let confirm_password = get_user_input_with_prompt("Confirm password:", true);
-
-            if password == confirm_password {
-                println!("{}", format!("Password set for '{}'.", username).bright_green());
-                break;
-            } else {
-                println!("{}", "Passwords do not match. Try again.".red());
-            }
-        } else {
-            println!("{}", "Error: Invalid command. Try again.".red());
-        }
-    }
-}
-
-/// Choose a desktop environment or window manager
-fn choose_environment(in_chroot: bool) {
-    let options = &["GNOME", "Plasma", "Hyprland"];
-    let selection = dialoguer::Select::new()
-        .with_prompt("Choose a desktop environment or window manager to install:")
+/// Installs desktop environment
+fn install_desktop() {
+    show_header("Installing desktop environment...");
+    
+    let options = &["GNOME", "Plasma", "Hyprland", "None"];
+    let selection = Select::new()
+        .with_prompt("Choose desktop environment")
         .items(options)
         .interact()
         .unwrap();
+
+    if selection == 3 {
+        println!("\n{}", "Skipping desktop installation.".bright_yellow());
+        return;
+    }
 
     let package = match selection {
         0 => "gnome",
         1 => "plasma",
         2 => "hyprland",
-        _ => panic!("Invalid selection"),
+        _ => return,
     };
 
-    simulate_command(&format!("pacman -S {}", package), &format!("Install {}", options[selection]), in_chroot, || {
-        let total_steps = 7;
-        let pb = create_progress_bar(total_steps);
-        
-        for i in 0..total_steps {
-            pb.set_position(i as u64);
+    simulate_command(&format!("pacman -S {}", package), &format!("Install {}", options[selection]), true, || {
+        let pb = create_progress_bar(7);
+        for i in 0..7 {
+            pb.set_position(i);
             pb.set_message(format!("Installing {}...", options[selection]));
             sleep(1);
         }
-        
-        pb.finish_with_message(format!("{} installed successfully.", options[selection]));
-        println!();
+        pb.finish_with_message("Installation complete.");
     });
-
-    println!("\n{} installed.\n", options[selection].bright_green());
-    sleep(1);
 }
 
-/// Simulate a command execution with a description and custom output
+/// Helper: Sets password for user
+fn set_password(username: &str) {
+    println!("\n{}", format!("Set password for {}:", username).bright_blue());
+    
+    // Skip command simulation for password setting
+    let pwd1 = read_password_with_prompt("New password: ");
+    let pwd2 = read_password_with_prompt("Retype password: ");
+    
+    if pwd1 == pwd2 && !pwd1.is_empty() {
+        println!("{}", "Password updated.".bright_green());
+    } else {
+        println!("{}", "Passwords don't match or empty.".red());
+        set_password(username); // Retry if passwords don't match
+    }
+}
+
+/// Helper: Reads password with prompt
+fn read_password_with_prompt(prompt: &str) -> String {
+    print!("{}", prompt);
+    std::io::stdout().flush().unwrap();
+    rpassword::read_password().unwrap_or_default()
+}
+
+/// Helper: Simulates command execution
 fn simulate_command<F>(command: &str, description: &str, in_chroot: bool, action: F)
 where
     F: FnOnce(),
 {
-    // Display the prompt with colors and add an extra line
-    println!("# {}", description.bright_blue());
-    println!(); // Add a blank line for better spacing
+    println!("\n# {}", description.bright_blue());
     println!("[hint] type: {}", command.bright_cyan());
     
-    // Display appropriate prompt based on environment
-    if in_chroot {
-        print!("{}:{} {} ", "root".bright_red(), "/".bright_blue(), "#".bright_red());
+    let prompt = if in_chroot {
+        format!("{}:{} # ", "root".bright_red(), "/".bright_blue())
     } else {
-        print!("{}@{} {} {} ", "root".bright_red(), "archiso".normal(), "~".bright_green(), "#".bright_red());
-    }
-    
-    io::stdout().flush().unwrap(); // Ensure the prompt is displayed immediately
+        format!("{}@archiso {} # ", "root".bright_red(), "~".bright_green())
+    };
 
-    // Wait for user input
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
+    let input = read_input_with_history(&prompt).unwrap_or_default();
 
-    // Check if the user typed the correct command
     if input.trim() == command {
-        action(); // Execute the action
+        action();
     } else {
         println!("{}", "Error: Invalid command. Try again.".red());
-        println!("{}", "Hint: Make sure you type the command exactly as shown.".bright_cyan());
-        simulate_command(command, description, in_chroot, action); // Retry
+        simulate_command(command, description, in_chroot, action);
     }
 }
