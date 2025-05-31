@@ -18,17 +18,7 @@ ArchTry is a **safe and fun way** to teach you the basics of installing Arch Lin
 
 ## **Installation (Quick Steps)**  
 
-1. **From AUR:**  
-   ```bash
-   yay -S archtry
-   ```
-
-2. **Using Cargo:**  
-   ```bash
-   cargo install archtry
-   ```
-
-3. **From Source:**  
+**From Source:**  
    ```bash
    git clone https://github.com/6z7y56/archtry.git  
    cd archtry  
