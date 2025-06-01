@@ -2,7 +2,7 @@
 name = "archtry"
 version = "1.0.3"
 edition = "2024"
-license = "GPL"
+license = "GPL-3.0"
 description = "Arch Linux Installation Simulator"
 repository = "https://github.com/6z7y/archtry"
 keywords = ["arch", "linux", "simulator", "educational", "cli"]
