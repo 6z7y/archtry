@@ -9,8 +9,8 @@ keywords = ["arch", "linux", "simulator", "educational", "cli"]
 categories = ["command-line-utilities"]
 
 [dependencies]
-colored = "3.0"
-dialoguer = "0.11"
-indicatif = "0.17"
-rpassword = "7.3"
-termios = "0.3.3"
+colored = "^3.0"
+dialoguer = "^0.11"
+indicatif = "^0.17"
+rpassword = "^7.3"
+termios = "^0.3"
