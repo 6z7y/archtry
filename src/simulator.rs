@@ -1,7 +1,7 @@
 use colored::Colorize;
 use dialoguer::{Select, Input};
 use crate::models::{DeviceType, GpuType, UserChoices};
-use crate::utils::{sleep, create_progress_bar, show_header, show_success, show_warning};
+use crate::utils::{clear_screen, create_progress_bar, show_header, show_success, show_warning, sleep};
 use crate::input_handler::read_input_with_history;
 use std::io::Write;
 
@@ -396,10 +396,21 @@ where
 
     let input = read_input_with_history(&prompt).unwrap_or_default();
 
-    if input.trim() == command {
-        action();
-    } else {
-        println!("{}", "Error: Invalid command. Try again.".red());
-        simulate_command(command, description, in_chroot, action);
+
+    match input.trim() {
+        x if x == command => {
+            action();
+        }
+        "clear" => {
+            clear_screen();
+            simulate_command(command, description, in_chroot, action);
+        }
+        "exit" => {
+            std::process::exit(0);
+        }
+        _ => {
+            println!("{}", "Error: Invalid command. Try again.".red());
+            simulate_command(command, description, in_chroot, action);
+        }
     }
 }
